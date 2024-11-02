@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="manifest.json" />
+    <title>To-Do List</title>
+    <style>
+      /* Your existing styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #121212;
+        color: #e0e0e0;
+        flex-direction: column;
+        padding: 10px;
+      }
+      .container {
+        width: 100%;
+        max-width: 400px;
+        padding: 20px;
+        border-radius: 15px;
+        background-color: #1f1f1f;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      h2 {
+        font-size: 24px;
+        color: #ffffff;
+        margin-bottom: 20px;
+      }
+      #taskInput {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        outline: none;
+        margin-bottom: 12px;
+        background-color: #333;
+        color: #e0e0e0;
+      }
+      .add-btn,
+      .clear-btn {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-bottom: 12px;
+      }
+      .add-btn {
+        background-color: #22b0ff;
+      }
+      .clear-btn {
+        background-color: #ff5252;
+      }
+      #taskList {
+        list-style-type: none;
+        padding: 0;
+      }
+      .task-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px;
+        border-radius: 8px;
+        background-color: #2e2e2e;
+        margin-bottom: 10px;
+        color: #e0e0e0;
+        flex-wrap: wrap;
+      }
+      .task-item.done {
+        background-color: rgba(0, 128, 0, 0.1);
+        color: #a5d6a7;
+      }
+      .task-number {
+        font-weight: bold;
+        margin-right: 10px;
+      }
+      .task-text {
+        flex-grow: 1;
+        font-size: 16px;
+        text-align: left;
+        word-wrap: break-word;
+      }
+      .delete-btn {
+        background-color: #ff5252;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .stats {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding: 10px;
+        background-color: #333;
+        border-radius: 8px;
+      }
+      footer {
+        font-size: 14px;
+        color: #888;
+        text-align: center;
+        margin-top: 10px;
+      }
+
+      /* Styles for input fields */
+      .datetime-container {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      #taskDate,
+      #taskTime {
+        flex: 1;
+        padding: 12px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        outline: none;
+        background-color: #333;
+        color: #e0e0e0;
+        margin-right: 5px; /* Add some space between date and time inputs */
+      }
+
+      #taskTime {
+        margin-right: 0; /* Remove margin from the last input */
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 500px) {
+        .datetime-container {
+          flex-direction: column; /* Stack inputs on smaller screens */
+        }
+
+        #taskDate,
+        #taskTime {
+          margin-right: 0; /* Remove margin on smaller screens */
+          margin-bottom: 10px; /* Add space below each input */
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>To-Do List</h2>
+      <div class="stats">
+        <span>Completed: <span id="completedCount">0</span></span>
+        <span>Incomplete: <span id="incompleteCount">0</span></span>
+      </div>
+      <input type="text" id="taskInput" placeholder="Enter a new task..." />
+      <div class="datetime-container">
+        <input type="date" id="taskDate" placeholder="Select Date" />
+        <input type="time" id="taskTime" placeholder="Select Time" />
+      </div>
+      <button class="add-btn" onclick="addTask()">Add Task</button>
+      <button class="clear-btn" onclick="clearAllTasks()">Clear All</button>
+      <ul id="taskList"></ul>
+    </div>
+
+    <script>
+      function addTask() {
+        const taskInput = document.getElementById("taskInput");
+        const taskDate = document.getElementById("taskDate").value;
+        const taskTime = document.getElementById("taskTime").value;
+        const taskText = taskInput.value.trim();
+
+        if (taskText === "") return;
+
+        const task = {
+          text: taskText,
+          date: taskDate,
+          time: taskTime,
+          done: false,
+        };
+        saveTask(task);
+        displayTask(task);
+
+        // Clear input fields after adding a task
+        taskInput.value = "";
+        document.getElementById("taskDate").value = "";
+        document.getElementById("taskTime").value = "";
+        updateStats();
+      }
+
+      function displayTask(task) {
+        const taskList = document.getElementById("taskList");
+        const taskNumber = taskList.children.length + 1;
+
+        const li = document.createElement("li");
+        li.className = "task-item";
+        if (task.done) li.classList.add("done");
+
+        const taskNumberSpan = document.createElement("span");
+        taskNumberSpan.className = "task-number";
+        taskNumberSpan.textContent = `${taskNumber}.`;
+
+        const taskText = document.createElement("span");
+        taskText.className = "task-text";
+        taskText.textContent = task.text;
+
+        // Create and append the date and time
+        const taskDateTime = document.createElement("span");
+        taskDateTime.textContent = `${task.date} ${task.time}`;
+        taskText.appendChild(document.createElement("br")); // Line break before date/time
+        taskText.appendChild(taskDateTime);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.addEventListener("click", () => removeTask(task, li));
+
+        const doneCheckbox = document.createElement("input");
+        doneCheckbox.type = "checkbox";
+        doneCheckbox.checked = task.done;
+        doneCheckbox.addEventListener("change", () => {
+          task.done = doneCheckbox.checked;
+          li.classList.toggle("done", task.done);
+          updateStats();
+        });
+
+        li.append(doneCheckbox, taskNumberSpan, taskText, deleteBtn);
+        taskList.appendChild(li);
+      }
+
+      function saveTask(task) {
+        const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        tasks.push(task);
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+      }
+
+      function loadTasks() {
+        const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        tasks.forEach(displayTask);
+        updateStats();
+      }
+
+      function removeTask(task, li) {
+        let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        tasks = tasks.filter((t) => t.text !== task.text);
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        li.remove();
+        updateTaskNumbers();
+        updateStats();
+      }
+
+      function updateTaskNumbers() {
+        const taskList = document.getElementById("taskList");
+        Array.from(taskList.children).forEach((item, index) => {
+          item.querySelector(".task-number").textContent = `${index + 1}. `;
+        });
+      }
+
+      function clearAllTasks() {
+        localStorage.removeItem("tasks");
+        document.getElementById("taskList").innerHTML = "";
+        updateStats();
+      }
+
+      function updateStats() {
+        const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        const completedCount = tasks.filter((task) => task.done).length;
+        const incompleteCount = tasks.length - completedCount;
+
+        document.getElementById("completedCount").textContent = completedCount;
+        document.getElementById("incompleteCount").textContent =
+          incompleteCount;
+      }
+
+      document.addEventListener("DOMContentLoaded", loadTasks);
+
+      // Set the current year in the footer
+      document.getElementById("currentYear").textContent =
+        new Date().getFullYear();
+    </script>
+
+    <footer>
+      Copyright © <span id="currentYear"></span>
+      <a
+        href="https://tazahmed.netlify.app/"
+        style="color: #4caf50; text-decoration: none"
+        >Taz Ahmed</a
+      >. All Rights Reserved.
+    </footer>
+
+    <script>
+      // Service Worker Registration
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("service-worker.js")
+            .then((registration) => {
+              console.log(
+                "Service Worker registered with scope:",
+                registration.scope
+              );
+            })
+            .catch((error) => {
+              console.error("Service Worker registration failed:", error);
+            });
+        });
+      }
+
+      // Prompt for adding to home screen
+      let deferredPrompt;
+      window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        const installBtn = document.createElement("button");
+        installBtn.innerText = "Add to Home Screen";
+        installBtn.style.position = "fixed";
+        installBtn.style.bottom = "20px";
+        installBtn.style.right = "20px";
+        installBtn.style.padding = "10px";
+        installBtn.style.backgroundColor = "#4caf50";
+        installBtn.style.color = "#fff";
+        installBtn.style.border = "none";
+        installBtn.style.borderRadius = "5px";
+        installBtn.style.cursor = "pointer";
+        document.body.appendChild(installBtn);
+
+        installBtn.addEventListener("click", () => {
+          installBtn.style.display = "none";
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === "accepted") {
+              console.log("User accepted the A2HS prompt");
+            } else {
+              console.log("User dismissed the A2HS prompt");
+            }
+            deferredPrompt = null;
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
