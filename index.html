@@ -502,5 +502,287 @@
         updateStats();
       }
     </script>
+
+    <script>
+      function displayTask(task) {
+        const taskList = document.getElementById("taskList");
+        const taskNumber = taskList.children.length + 1;
+
+        const li = document.createElement("li");
+        li.className = "task-item";
+        li.draggable = true; // Enable dragging
+        if (task.done) li.classList.add("done");
+
+        li.addEventListener("dragstart", handleDragStart);
+        li.addEventListener("dragover", handleDragOver);
+        li.addEventListener("drop", handleDrop);
+        li.addEventListener("dragend", updateTaskNumbers); // Update numbers on drag end
+
+        const taskNumberSpan = document.createElement("span");
+        taskNumberSpan.className = "task-number";
+        taskNumberSpan.textContent = `${taskNumber}.`;
+
+        const taskText = document.createElement("span");
+        taskText.className = "task-text";
+        taskText.textContent = task.text;
+
+        const taskDateTime = document.createElement("span");
+        taskDateTime.textContent = `${task.date} ${task.time}`;
+        taskText.appendChild(document.createElement("br"));
+        taskText.appendChild(taskDateTime);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.addEventListener("click", () => removeTask(task, li));
+
+        const doneCheckbox = document.createElement("input");
+        doneCheckbox.type = "checkbox";
+        doneCheckbox.checked = task.done;
+        doneCheckbox.addEventListener("change", () => {
+          task.done = doneCheckbox.checked;
+          li.classList.toggle("done", task.done);
+          updateStats();
+        });
+
+        li.append(doneCheckbox, taskNumberSpan, taskText, deleteBtn);
+        taskList.appendChild(li);
+      }
+
+      // Drag and Drop Handlers
+      let draggedItem = null;
+
+      function handleDragStart(e) {
+        draggedItem = this;
+        e.dataTransfer.effectAllowed = "move";
+      }
+
+      function handleDragOver(e) {
+        e.preventDefault(); // Necessary to allow drop
+        e.dataTransfer.dropEffect = "move";
+      }
+
+      function handleDrop(e) {
+        e.preventDefault();
+        if (this !== draggedItem) {
+          const taskList = document.getElementById("taskList");
+          const allTasks = Array.from(taskList.children);
+
+          const draggedIndex = allTasks.indexOf(draggedItem);
+          const targetIndex = allTasks.indexOf(this);
+
+          if (draggedIndex < targetIndex) {
+            this.after(draggedItem);
+          } else {
+            this.before(draggedItem);
+          }
+
+          updateTaskNumbers();
+        }
+      }
+
+      // Update task numbers after drag-and-drop
+      function updateTaskNumbers() {
+        const taskList = document.getElementById("taskList");
+        Array.from(taskList.children).forEach((item, index) => {
+          item.querySelector(".task-number").textContent = `${index + 1}. `;
+        });
+      }
+    </script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", loadTasks);
+
+      function addTask() {
+        const taskInput = document.getElementById("taskInput");
+        const taskDate = document.getElementById("taskDate").value;
+        const taskTime = document.getElementById("taskTime").value;
+        const taskText = taskInput.value.trim();
+
+        if (taskText === "") return;
+
+        const task = {
+          id: Date.now(), // Unique ID for each task
+          text: taskText,
+          date: taskDate,
+          time: taskTime,
+          done: false,
+        };
+
+        saveTask(task);
+        displayTask(task);
+
+        taskInput.value = "";
+        document.getElementById("taskDate").value = "";
+        document.getElementById("taskTime").value = "";
+        updateStats();
+      }
+
+      function displayTask(task) {
+        const taskList = document.getElementById("taskList");
+
+        // Check if task is already displayed
+        if (
+          Array.from(taskList.children).some(
+            (item) => item.dataset.taskId === String(task.id)
+          )
+        ) {
+          return; // Don't add the task if it's already there
+        }
+
+        const li = document.createElement("li");
+        li.className = "task-item";
+        li.dataset.taskId = task.id; // Use task ID for tracking
+        if (task.done) li.classList.add("done");
+
+        const taskNumberSpan = document.createElement("span");
+        taskNumberSpan.className = "task-number";
+        taskNumberSpan.textContent = `${taskList.children.length + 1}. `; // Set task number
+
+        const taskText = document.createElement("span");
+        taskText.className = "task-text";
+        taskText.textContent = task.text;
+
+        const taskDateTime = document.createElement("span");
+        taskDateTime.textContent = `${task.date} ${task.time}`;
+        taskText.appendChild(document.createElement("br"));
+        taskText.appendChild(taskDateTime);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.addEventListener("click", () => removeTask(task.id, li));
+
+        const doneCheckbox = document.createElement("input");
+        doneCheckbox.type = "checkbox";
+        doneCheckbox.checked = task.done;
+        doneCheckbox.addEventListener("change", () => {
+          task.done = doneCheckbox.checked;
+          li.classList.toggle("done", task.done);
+          updateTaskStatus(task.id, task.done);
+          updateStats();
+        });
+
+        li.append(doneCheckbox, taskNumberSpan, taskText, deleteBtn);
+        taskList.appendChild(li);
+
+        addTouchDragHandlers(li);
+        updateTaskNumbers(); // Ensure task numbers are updated after adding a task
+      }
+
+      function addTouchDragHandlers(item) {
+        let startY = 0;
+        let targetItem = null;
+
+        item.addEventListener("touchstart", (e) => {
+          startY = e.touches[0].clientY;
+          targetItem = item;
+          targetItem.style.opacity = "0.5";
+        });
+
+        item.addEventListener("touchmove", (e) => {
+          e.preventDefault();
+          const dy = e.touches[0].clientY - startY;
+          targetItem.style.transform = `translateY(${dy}px)`;
+
+          const taskList = document.getElementById("taskList");
+          const items = Array.from(taskList.children);
+
+          items.forEach((el) => {
+            if (el === targetItem) return;
+            const rect = el.getBoundingClientRect();
+            if (
+              e.touches[0].clientY > rect.top &&
+              e.touches[0].clientY < rect.bottom
+            ) {
+              if (dy < 0) el.before(targetItem); // Move up
+              else el.after(targetItem); // Move down
+            }
+          });
+        });
+
+        item.addEventListener("touchend", () => {
+          targetItem.style.opacity = "1";
+          targetItem.style.transform = "none";
+          updateTaskNumbers(); // Update task numbers after dragging
+          saveTasksToLocal();
+        });
+      }
+
+      function saveTask(task) {
+        const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        // Check if task already exists based on its unique ID
+        if (!tasks.find((t) => t.id === task.id)) {
+          tasks.push(task);
+          localStorage.setItem("tasks", JSON.stringify(tasks));
+        }
+      }
+
+      function loadTasks() {
+        const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        tasks.forEach(displayTask);
+        updateStats();
+      }
+
+      function saveTasksToLocal() {
+        const taskList = document.getElementById("taskList");
+        const tasks = Array.from(taskList.children).map((item) => ({
+          id: parseInt(item.dataset.taskId),
+          text: item.querySelector(".task-text").textContent,
+          date: item.querySelector(".task-date")?.textContent || "",
+          time: item.querySelector(".task-time")?.textContent || "",
+          done: item.querySelector("input[type='checkbox']").checked,
+        }));
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+      }
+
+      function removeTask(taskId, li) {
+        let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        tasks = tasks.filter((t) => t.id !== taskId);
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        li.remove();
+        updateTaskNumbers(); // Ensure task numbers are updated after removing a task
+        updateStats();
+      }
+
+      function updateTaskNumbers() {
+        const taskList = document.getElementById("taskList");
+        Array.from(taskList.children).forEach((item, index) => {
+          item.querySelector(".task-number").textContent = `${index + 1}. `;
+        });
+      }
+
+      function updateTaskStatus(taskId, doneStatus) {
+        const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        const taskIndex = tasks.findIndex((task) => task.id === taskId);
+        if (taskIndex > -1) tasks[taskIndex].done = doneStatus;
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+      }
+
+      function updateStats() {
+        const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        const completedCount = tasks.filter((task) => task.done).length;
+        const incompleteCount = tasks.length - completedCount;
+
+        document.getElementById("completedCount").textContent = completedCount;
+        document.getElementById("incompleteCount").textContent =
+          incompleteCount;
+      }
+    </script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        loadTasks();
+        const taskInput = document.getElementById("taskInput");
+
+        // Add event listener for the Enter key
+        taskInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault(); // Prevent form submission if inside a form
+            addTask(); // Call the function to add the task
+          }
+        });
+      });
+    </script>
   </body>
 </html>
