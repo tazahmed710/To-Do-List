@@ -414,5 +414,93 @@
         });
       });
     </script>
+
+    <script>
+      function displayTask(task) {
+        const taskList = document.getElementById("taskList");
+        const taskNumber = taskList.children.length + 1;
+
+        const li = document.createElement("li");
+        li.className = "task-item";
+        if (task.done) li.classList.add("done");
+
+        const taskNumberSpan = document.createElement("span");
+        taskNumberSpan.className = "task-number";
+        taskNumberSpan.textContent = `${taskNumber}.`;
+
+        const taskText = document.createElement("span");
+        taskText.className = "task-text";
+        taskText.textContent = task.text;
+
+        // Create and append the date and time
+        const taskDateTime = document.createElement("span");
+        taskDateTime.textContent = `${task.date} ${task.time}`;
+        taskText.appendChild(document.createElement("br")); // Line break before date/time
+        taskText.appendChild(taskDateTime);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.addEventListener("click", () => removeTask(task, li));
+
+        const doneCheckbox = document.createElement("input");
+        doneCheckbox.type = "checkbox";
+        doneCheckbox.checked = task.done;
+        doneCheckbox.addEventListener("change", () => {
+          task.done = doneCheckbox.checked;
+          li.classList.toggle("done", task.done);
+
+          // Update local storage with the new task list
+          let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+          const index = tasks.findIndex(
+            (t) =>
+              t.text === task.text &&
+              t.date === task.date &&
+              t.time === task.time
+          );
+          if (index !== -1) {
+            tasks[index].done = task.done; // Update the done status in the array
+            localStorage.setItem("tasks", JSON.stringify(tasks)); // Save updated tasks to local storage
+          }
+
+          updateStats();
+        });
+
+        li.append(doneCheckbox, taskNumberSpan, taskText, deleteBtn);
+        taskList.appendChild(li);
+      }
+
+      function updateStats() {
+        const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        const completedCount = tasks.filter((task) => task.done).length;
+        const incompleteCount = tasks.length - completedCount;
+
+        document.getElementById("completedCount").textContent = completedCount;
+        document.getElementById("incompleteCount").textContent =
+          incompleteCount;
+      }
+
+      function removeTask(task, li) {
+        let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        tasks = tasks.filter(
+          (t) =>
+            !(
+              t.text === task.text &&
+              t.date === task.date &&
+              t.time === task.time
+            )
+        );
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        li.remove();
+        updateTaskNumbers();
+        updateStats();
+      }
+
+      function loadTasks() {
+        const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        tasks.forEach(displayTask);
+        updateStats();
+      }
+    </script>
   </body>
 </html>
